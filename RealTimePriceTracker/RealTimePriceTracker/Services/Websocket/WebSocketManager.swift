@@ -12,7 +12,7 @@ final class WebSocketManager: WebSocketService, ObservableObject {
     @Published var connectionError: NetworkError?
 
     private let networkClient: NetworkClient
-    private let logger: ConsoleLogger
+    private let logger: any Logger
     private var priceUpdateTask: Task<Void, Never>?
 
     var isConnected: Bool {
@@ -23,7 +23,7 @@ final class WebSocketManager: WebSocketService, ObservableObject {
         get async { await networkClient.connectionState }
     }
 
-    init(networkClient: NetworkClient, logger: ConsoleLogger) {
+    init(networkClient: NetworkClient, logger: any Logger) {
         self.networkClient = networkClient
         self.logger = logger
     }
@@ -35,7 +35,7 @@ final class WebSocketManager: WebSocketService, ObservableObject {
     nonisolated func connect() async throws {
         guard let url = URL(string: Constants.Network.webSocketURL) else {
             await MainActor.run {
-                logger.error("Invalid WebSocket URL", category: .websocket)
+                logger.error("Invalid WebSocket URL", error: nil, category: .websocket)
             }
             throw NetworkError.invalidURL
         }
@@ -88,9 +88,27 @@ final class WebSocketManager: WebSocketService, ObservableObject {
     }
 
     nonisolated func startPriceUpdateStream() -> AsyncThrowingStream<PriceUpdate, Error> {
-        Task { @MainActor in
-            logger.info("Starting price update stream", category: .websocket)
+        return AsyncThrowingStream<PriceUpdate, Error> { continuation in
+            Task { @MainActor [weak self] in
+                guard let self = self else {
+                    continuation.finish(throwing: NetworkError.receiveFailed("Service deallocated"))
+                    return
+                }
+
+                self.logger.info("Starting price update stream", category: .websocket)
+
+                do {
+                    let stream = self.networkClient.startReceiving(PriceUpdate.self)
+
+                    // Forward the stream data
+                    for try await update in stream {
+                        continuation.yield(update)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
         }
-        return networkClient.startReceiving(PriceUpdate.self)
     }
 }

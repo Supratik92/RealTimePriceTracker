@@ -1,0 +1,74 @@
+/* 
+  Localizable.strings
+  RealTimePriceTracker
+
+  Created by Supratik Banerjee on 22/08/25.
+  
+*/
+
+// App
+"app.title" = "Stock Tracker";
+
+// Connection Status
+"connection.status.connected" = "Connected";
+"connection.status.disconnected" = "Disconnected";
+"connection.status.connecting" = "Connecting";
+"connection.status.reconnecting" = "Reconnecting";
+"connection.status.failed" = "Failed";
+
+// Buttons
+"button.start" = "Start";
+"button.stop" = "Stop";
+"button.ok" = "OK";
+"button.dismiss" = "Dismiss";
+"button.retry" = "Retry";
+
+// Errors
+"error.title" = "Error";
+
+// Network Errors
+"error.network.invalid_url" = "Invalid URL";
+"error.network.connection_failed" = "Connection failed";
+"error.network.send_failed" = "Send failed";
+"error.network.receive_failed" = "Receive failed";
+"error.network.encoding_failed" = "Encoding failed";
+"error.network.decoding_failed" = "Decoding failed";
+"error.network.timeout" = "Network timeout";
+"error.network.unavailable" = "Network unavailable";
+
+// Stock Errors
+"error.stock.symbol_not_found" = "Symbol not found";
+"error.stock.invalid_price" = "Invalid price";
+"error.stock.update_failed" = "Update failed";
+
+// Generator Errors
+"error.generator.already_generating" = "Already generating prices";
+"error.generator.generation_failed" = "Price generation failed";
+"error.generator.websocket_unavailable" = "WebSocket connection unavailable";
+
+// Symbol Details
+"symbol.about" = "About";
+"symbol.details" = "Details";
+"symbol.last_updated" = "Last Updated";
+"symbol.previous_price" = "Previous Price";
+"symbol.price_change" = "Price Change";
+
+// Themes
+"theme.system" = "System";
+"theme.light" = "Light";
+"theme.dark" = "Dark";
+
+// Accessibility
+"accessibility.loading" = "Loading";
+"accessibility.error_banner" = "Error message";
+"accessibility.price" = "Price";
+"accessibility.dollars" = "dollars";
+"accessibility.start_tracking" = "Start price tracking";
+"accessibility.stop_tracking" = "Stop price tracking";
+"accessibility.view_details" = "View details";
+"accessibility.price_change" = "Price change";
+"accessibility.current_price" = "Current price";
+"accessibility.price_movement" = "Price movement";
+"accessibility.up" = "up";
+"accessibility.down" = "down";
+"accessibility.percent" = "percent";

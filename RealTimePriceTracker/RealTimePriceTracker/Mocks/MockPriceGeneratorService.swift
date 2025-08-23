@@ -5,38 +5,36 @@
 //  Created by Supratik Banerjee on 23/08/25.
 //
 
-import SwiftUI
+import Combine
+import Foundation
 
 final class MockPriceGeneratorService: PriceGeneratorService {
+    @Published private var _isGenerating = false
 
-    @MainActor private var _isGenerating = false
+    var isGenerating: Bool { _isGenerating }
 
-    var isGenerating: Bool {
-        get async {
-            await MainActor.run { _isGenerating }
-        }
-    }
+    var startGeneratingCalled = false
+    var stopGeneratingCalled = false
+    var shouldSucceedGeneration = true
 
-    @MainActor var startGeneratingCalled = false
-    @MainActor var stopGeneratingCalled = false
-    @MainActor var shouldSucceedGeneration = true
+    func startGenerating(for symbols: [StockSymbol]) -> AnyPublisher<Void, PriceGeneratorError> {
+        return Future<Void, PriceGeneratorError> { promise in
+            self.startGeneratingCalled = true
 
-    nonisolated func startGenerating(for symbols: [StockSymbol]) async throws {
-        try await MainActor.run {
-            startGeneratingCalled = true
-
-            if shouldSucceedGeneration {
-                _isGenerating = true
-            } else {
-                throw PriceGeneratorError.generationFailed("Mock generation failed")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if self.shouldSucceedGeneration {
+                    self._isGenerating = true
+                    promise(.success(()))
+                } else {
+                    promise(.failure(.generationFailed("Mock generation failed")))
+                }
             }
         }
+        .eraseToAnyPublisher()
     }
 
-    nonisolated func stopGenerating() async {
-        await MainActor.run {
-            stopGeneratingCalled = true
-            _isGenerating = false
-        }
+    func stopGenerating() {
+        stopGeneratingCalled = true
+        _isGenerating = false
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 protocol DeepLinkHandler: AnyObject {
     func handle(url: URL) async
@@ -15,6 +16,7 @@ final class StockDeepLinkHandler: DeepLinkHandler {
     private let coordinator: AppCoordinator
     private let stockDataService: StockDataService
     private let logger: any Logger
+    private var cancellables = Set<AnyCancellable>()
 
     init(coordinator: AppCoordinator, stockDataService: StockDataService, logger: any Logger) {
         self.coordinator = coordinator
@@ -22,7 +24,7 @@ final class StockDeepLinkHandler: DeepLinkHandler {
         self.logger = logger
     }
 
-    func handle(url: URL) async {
+    func handle(url: URL) {
         logger.info("Handling deep link: \(url.absoluteString)", category: .deeplink)
 
         guard url.scheme == Constants.DeepLink.scheme else {
@@ -40,12 +42,18 @@ final class StockDeepLinkHandler: DeepLinkHandler {
 
         let symbolCode = pathComponents[1].uppercased()
 
-        guard let symbol = await stockDataService.getSymbol(by: symbolCode) else {
-            logger.error("Symbol not found for deep link: \(symbolCode)", error: nil, category: .deeplink)
-            return
-        }
-
-        logger.info("Navigating to symbol via deep link: \(symbolCode)", category: .deeplink)
-        await coordinator.navigate(to: .symbolDetail(symbol))
+        stockDataService.getSymbol(by: symbolCode)
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] symbol in
+                    self?.logger.info("Navigating to symbol via deep link: \(symbolCode)", category: .deeplink)
+                    Task {
+                        await self?.coordinator.navigate(to: .symbolDetail(symbol))
+                    }
+                }
+            )
+            .store(in: &cancellables)
     }
 }

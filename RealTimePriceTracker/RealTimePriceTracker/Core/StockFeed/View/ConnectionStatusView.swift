@@ -10,7 +10,6 @@ import SwiftUI
 struct ConnectionStatusView: View {
     @EnvironmentObject private var webSocketService: WebSocketManager
     @State private var connectionState: NetworkConnectionState = .disconnected
-    @State private var updateTrigger: UUID = UUID()
 
     var body: some View {
         HStack(spacing: 8) {
@@ -23,20 +22,11 @@ struct ConnectionStatusView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .task {
-            connectionState = await webSocketService.connectionState
+        .onReceive(webSocketService.connectionState) { state in
+            connectionState = state
         }
-        .task(id: updateTrigger) {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(500))
-                let newState = await webSocketService.connectionState
-                if newState != connectionState {
-                    connectionState = newState
-                }
-            }
-        }
-        .onReceive(webSocketService.objectWillChange) { _ in
-            updateTrigger = UUID()
+        .onAppear {
+            connectionState = webSocketService.isConnected ? .connected : .disconnected
         }
     }
 

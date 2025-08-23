@@ -6,109 +6,99 @@
 //
 
 import Foundation
+import Combine
 
-@MainActor
 final class WebSocketManager: WebSocketService, ObservableObject {
     @Published var connectionError: NetworkError?
 
     private let networkClient: NetworkClient
     private let logger: any Logger
-    private var priceUpdateTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
 
     var isConnected: Bool {
-        get async { await networkClient.isConnected }
+        networkClient.isConnected
     }
 
-    var connectionState: NetworkConnectionState {
-        get async { await networkClient.connectionState }
+    var connectionState: AnyPublisher<NetworkConnectionState, Never> {
+        networkClient.connectionState
+    }
+
+    var priceUpdates: AnyPublisher<PriceUpdate, Never> {
+        networkClient.receive(PriceUpdate.self)
+            .catch { [weak self] error -> Empty<PriceUpdate, Never> in
+                self?.logger.error("Price update receive failed", error: error, category: .websocket)
+                return Empty()
+            }
+            .eraseToAnyPublisher()
     }
 
     init(networkClient: NetworkClient, logger: any Logger) {
         self.networkClient = networkClient
         self.logger = logger
+
+        setupConnectionStateObserver()
     }
 
-    deinit {
-        priceUpdateTask?.cancel()
+    private func setupConnectionStateObserver() {
+        networkClient.connectionState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                if case .failed(let error) = state {
+                    self?.connectionError = error
+                    self?.logger.error("Connection state failed", error: error, category: .websocket)
+                } else {
+                    self?.connectionError = nil
+                }
+            }
+            .store(in: &cancellables)
     }
 
-    nonisolated func connect() async throws {
+    func connect() -> AnyPublisher<Void, NetworkError> {
         guard let url = URL(string: Constants.Network.webSocketURL) else {
-            await MainActor.run {
-                logger.error("Invalid WebSocket URL", error: nil, category: .websocket)
-            }
-            throw NetworkError.invalidURL
+            logger.error("Invalid WebSocket URL", error: NetworkError.invalidURL, category: .websocket)
+            return Fail(error: NetworkError.invalidURL)
+                .eraseToAnyPublisher()
         }
 
-        await MainActor.run {
-            logger.info("Connecting to WebSocket", category: .websocket)
-        }
+        logger.info("Connecting to WebSocket", category: .websocket)
 
-        do {
-            try await networkClient.connect(to: url)
-            await MainActor.run {
-                connectionError = nil
-                logger.info("WebSocket connected successfully", category: .websocket)
-            }
-        } catch let error as NetworkError {
-            await MainActor.run {
-                logger.error("WebSocket connection failed", error: error, category: .websocket)
-                connectionError = error
-            }
-            throw error
-        }
-    }
-
-    nonisolated func disconnect() async {
-        await MainActor.run {
-            logger.info("Disconnecting WebSocket", category: .websocket)
-            priceUpdateTask?.cancel()
-            priceUpdateTask = nil
-        }
-        await networkClient.disconnect()
-    }
-
-    nonisolated func sendPriceUpdate(_ update: PriceUpdate) async throws {
-        await MainActor.run {
-            logger.debug("Sending price update for \(update.symbol): $\(update.price.toCurrency())", category: .websocket)
-        }
-
-        do {
-            try await networkClient.send(update)
-            await MainActor.run {
-                logger.debug("Price update sent for \(update.symbol)", category: .websocket)
-            }
-        } catch let error as NetworkError {
-            await MainActor.run {
-                logger.error("Failed to send price update", error: error, category: .websocket)
-                connectionError = error
-            }
-            throw error
-        }
-    }
-
-    nonisolated func startPriceUpdateStream() -> AsyncThrowingStream<PriceUpdate, Error> {
-        return AsyncThrowingStream<PriceUpdate, Error> { continuation in
-            Task { @MainActor [weak self] in
-                guard let self = self else {
-                    continuation.finish(throwing: NetworkError.receiveFailed("Service deallocated"))
-                    return
-                }
-
-                self.logger.info("Starting price update stream", category: .websocket)
-
-                do {
-                    let stream = self.networkClient.startReceiving(PriceUpdate.self)
-
-                    // Forward the stream data
-                    for try await update in stream {
-                        continuation.yield(update)
+        return networkClient.connect(to: url)
+            .receive(on: DispatchQueue.main)
+            .handleEvents(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        self?.logger.error("WebSocket connection failed", error: error, category: .websocket)
+                        self?.connectionError = error
+                    } else {
+                        self?.logger.info("WebSocket connected successfully", category: .websocket)
+                        self?.connectionError = nil
                     }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
                 }
-            }
-        }
+            )
+            .eraseToAnyPublisher()
+    }
+
+    func disconnect() {
+        logger.info("Disconnecting WebSocket", category: .websocket)
+        networkClient.disconnect()
+    }
+
+    func sendPriceUpdate(_ update: PriceUpdate) -> AnyPublisher<Void, NetworkError> {
+        logger.debug("Sending price update for \(update.symbol): $\(update.price.toCurrency())", category: .websocket)
+
+        return networkClient.send(update)
+            .receive(on: DispatchQueue.main)
+            .handleEvents(
+                receiveCompletion: { [weak self] completion in
+                    switch completion {
+                    case .finished:
+                        self?.logger.debug("Price update sent for \(update.symbol)", category: .websocket)
+                    case .failure(let error):
+                        self?.logger.error("Failed to send price update", error: error, category: .websocket)
+                        self?.connectionError = error
+                    }
+                }
+            )
+            .eraseToAnyPublisher()
     }
 }

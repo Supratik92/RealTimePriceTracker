@@ -38,14 +38,10 @@ struct StockFeedView: View {
                 isActive: viewModel.isTrackingActive,
                 isLoading: viewModel.isLoading,
                 onStart: {
-                    Task {
-                        await viewModel.startTracking()
-                    }
+                    viewModel.startTracking()
                 },
                 onStop: {
-                    Task {
-                        await viewModel.stopTracking()
-                    }
+                    viewModel.stopTracking()
                 }
             )
         }
@@ -102,7 +98,7 @@ struct StockFeedView: View {
         }
         .listStyle(PlainListStyle())
         .refreshable {
-            await viewModel.refreshData()
+            viewModel.refreshData()
         }
         .overlay {
             if viewModel.isLoading {

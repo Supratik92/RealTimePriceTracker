@@ -6,20 +6,24 @@
 //
 
 import Foundation
+import Combine
 
 final class MockStockDataService: StockDataService {
     var symbols: [StockSymbol] = StockSymbol.sampleSymbols
     var shouldFailUpdate = false
 
-    func getAllSymbols() async -> [StockSymbol] {
-        return symbols
+    func getAllSymbols() -> AnyPublisher<[StockSymbol], Never> {
+        return Just(symbols)
+            .eraseToAnyPublisher()
     }
 
-    func getSymbol(by code: String) async -> StockSymbol? {
-        return symbols.first { $0.symbol.lowercased() == code.lowercased() }
+    func getSymbol(by code: String) -> AnyPublisher<StockSymbol?, Never> {
+        let symbol = symbols.first { $0.symbol.lowercased() == code.lowercased() }
+        return Just(symbol)
+            .eraseToAnyPublisher()
     }
 
-    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) async -> Result<StockSymbol, StockDataError> {
+    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) -> Result<StockSymbol, StockDataError> {
         if shouldFailUpdate {
             return .failure(.updateFailed("Mock update failed"))
         }

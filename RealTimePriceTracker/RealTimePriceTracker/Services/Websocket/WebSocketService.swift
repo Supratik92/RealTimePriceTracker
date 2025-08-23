@@ -6,15 +6,15 @@
 //
 
 import Foundation
+import Combine
 
-@MainActor
 protocol WebSocketService: ObservableObject {
-    var isConnected: Bool { get async }
+    var isConnected: Bool { get }
     var connectionError: NetworkError? { get }
-    var connectionState: NetworkConnectionState { get async }
+    var connectionState: AnyPublisher<NetworkConnectionState, Never> { get }
+    var priceUpdates: AnyPublisher<PriceUpdate, Never> { get }
 
-    nonisolated func connect() async throws
-    nonisolated func disconnect() async
-    nonisolated func sendPriceUpdate(_ update: PriceUpdate) async throws
-    nonisolated func startPriceUpdateStream() -> AsyncThrowingStream<PriceUpdate, Error>
+    func connect() -> AnyPublisher<Void, NetworkError>
+    func disconnect()
+    func sendPriceUpdate(_ update: PriceUpdate) -> AnyPublisher<Void, NetworkError>
 }

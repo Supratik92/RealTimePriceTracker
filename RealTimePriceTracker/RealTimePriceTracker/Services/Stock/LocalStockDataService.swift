@@ -6,21 +6,22 @@
 //
 
 import Foundation
+import Combine
 
 final class LocalStockDataService: StockDataService {
-
     private let logger: any Logger
 
     init(logger: any Logger) {
         self.logger = logger
     }
 
-    func getAllSymbols() async -> [StockSymbol] {
+    func getAllSymbols() -> AnyPublisher<[StockSymbol], Never> {
         logger.debug("Loading all stock symbols", category: .business)
-        return StockSymbol.sampleSymbols
+        return Just(StockSymbol.sampleSymbols)
+            .eraseToAnyPublisher()
     }
 
-    func getSymbol(by code: String) async -> StockSymbol? {
+    func getSymbol(by code: String) -> AnyPublisher<StockSymbol?, Never> {
         logger.debug("Looking up symbol: \(code)", category: .business)
         let symbol = StockSymbol.sampleSymbols.first { $0.symbol.lowercased() == code.lowercased() }
 
@@ -28,19 +29,25 @@ final class LocalStockDataService: StockDataService {
             logger.warning("Symbol not found: \(code)", category: .business)
         }
 
-        return symbol
+        return Just(symbol)
+            .eraseToAnyPublisher()
     }
 
-    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) async -> Result<StockSymbol, StockDataError> {
+    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) -> Result<StockSymbol, StockDataError> {
         guard ValidationHelpers.validatePrice(newPrice) else {
+            logger.error("Invalid price for \(symbol.symbol): \(newPrice)",
+                         error: StockDataError.invalidPrice(newPrice),
+                         category: .business)
             return .failure(.invalidPrice(newPrice))
         }
 
         var updatedSymbol = symbol
-        updatedSymbol.previousPrice = updatedSymbol.currentPrice
+        let oldPrice = updatedSymbol.currentPrice
+        updatedSymbol.previousPrice = oldPrice
         updatedSymbol.currentPrice = newPrice
         updatedSymbol.lastUpdated = Date()
 
+        logger.debug("Updated \(updatedSymbol.symbol) price: \(oldPrice.toCurrency()) -> \(newPrice.toCurrency())", category: .business)
         return .success(updatedSymbol)
     }
 }

@@ -6,13 +6,14 @@
 //
 
 import Foundation
+import Combine
 
 protocol NetworkClient: AnyObject {
-    var isConnected: Bool { get async }
-    var connectionState: NetworkConnectionState { get async }
+    var isConnected: Bool { get }
+    var connectionState: AnyPublisher<NetworkConnectionState, Never> { get }
 
-    func connect(to url: URL) async throws
-    func disconnect() async
-    func send<T: Codable>(_ data: T) async throws
-    func startReceiving<T: Codable>(_ type: T.Type) -> AsyncThrowingStream<T, Error>
+    func connect(to url: URL) -> AnyPublisher<Void, NetworkError>
+    func disconnect()
+    func send<T: Codable>(_ data: T) -> AnyPublisher<Void, NetworkError>
+    func receive<T: Codable>(_ type: T.Type) -> AnyPublisher<T, NetworkError>
 }

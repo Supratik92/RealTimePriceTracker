@@ -8,47 +8,52 @@
 import Combine
 import Foundation
 
-@MainActor
 final class SymbolDetailViewModel: ObservableObject {
     @Published var symbol: StockSymbol
     @Published var errorMessage: String?
     @Published var isLoading = false
+    @Published var connectionError: NetworkError?
 
     private let webSocketService: any WebSocketService
     private let logger: any Logger
-    private var priceStreamTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
 
-    init(symbol: StockSymbol, webSocketService: any WebSocketService, logger: any Logger) {
+    init(symbol: StockSymbol,
+         webSocketService: any WebSocketService,
+         logger: any Logger) {
         self.symbol = symbol
         self.webSocketService = webSocketService
+        self.connectionError = webSocketService.connectionError
         self.logger = logger
 
         logger.info("Initialized detail view for symbol: \(symbol.symbol)", category: .ui)
-        startPriceStream()
+        setupPriceUpdates()
+        setupErrorHandling()
     }
 
-    deinit {
-        priceStreamTask?.cancel()
-    }
-
-    private func startPriceStream() {
-        priceStreamTask = Task {
-            do {
-                let stream = webSocketService.startPriceUpdateStream()
-
-                for try await update in stream {
-                    if update.symbol == symbol.symbol {
-                        await updatePrice(update)
-                    }
-                }
-            } catch {
-                logger.error("Price stream failed for \(symbol.symbol)", error: error, category: .ui)
-                errorMessage = error.localizedDescription
+    private func setupPriceUpdates() {
+        webSocketService.priceUpdates
+            .filter { [weak self] update in
+                update.symbol == self?.symbol.symbol
             }
-        }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] update in
+                self?.updatePrice(update)
+            }
+            .store(in: &cancellables)
     }
 
-    private func updatePrice(_ update: PriceUpdate) async {
+    private func setupErrorHandling() {
+        $connectionError
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] error in
+                self?.errorMessage = error.localizedDescription
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updatePrice(_ update: PriceUpdate) {
         let oldPrice = symbol.currentPrice
         symbol.previousPrice = oldPrice
         symbol.currentPrice = update.price
@@ -59,9 +64,8 @@ final class SymbolDetailViewModel: ObservableObject {
         if update.price != oldPrice {
             symbol.isFlashing = true
 
-            Task {
-                try? await Task.sleep(for: .seconds(Constants.PriceGeneration.flashAnimationDuration))
-                symbol.isFlashing = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.PriceGeneration.flashAnimationDuration) {
+                self.symbol.isFlashing = false
             }
         }
     }

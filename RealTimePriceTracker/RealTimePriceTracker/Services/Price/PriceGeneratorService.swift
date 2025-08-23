@@ -5,9 +5,12 @@
 //  Created by Supratik Banerjee on 22/08/25.
 //
 
-protocol PriceGeneratorService: AnyObject {
-    var isGenerating: Bool { get async }
+import Foundation
+import Combine
 
-    func startGenerating(for symbols: [StockSymbol]) async throws
-    func stopGenerating() async
+protocol PriceGeneratorService: AnyObject {
+    var isGenerating: Bool { get }
+
+    func startGenerating(for symbols: [StockSymbol]) -> AnyPublisher<Void, PriceGeneratorError>
+    func stopGenerating()
 }

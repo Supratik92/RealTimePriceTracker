@@ -6,9 +6,9 @@
 //
 
 import XCTest
+import Combine
 @testable import RealTimePriceTracker
 
-@MainActor
 final class StockFeedViewModelTests: XCTestCase {
     var viewModel: StockFeedViewModel!
     var mockWebSocketService: MockWebSocketService!
@@ -16,6 +16,7 @@ final class StockFeedViewModelTests: XCTestCase {
     var mockStockDataService: MockStockDataService!
     var mockErrorRecovery: MockErrorRecoveryService!
     var mockLogger: MockLogger!
+    var cancellables = Set<AnyCancellable>()
 
     override func setUp() async throws {
         try await super.setUp()
@@ -36,12 +37,13 @@ final class StockFeedViewModelTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        await viewModel.stopTracking()
+        viewModel.stopTracking()
+        cancellables.removeAll()
         viewModel = nil
         try await super.tearDown()
     }
 
-    func testInitialState() async {
+    func testInitialState() {
         XCTAssertFalse(viewModel.isTrackingActive)
         XCTAssertTrue(viewModel.flashingSymbols.isEmpty)
         XCTAssertNil(viewModel.errorMessage)
@@ -49,72 +51,72 @@ final class StockFeedViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.symbols.count, Constants.UI.minimumSymbolCount)
     }
 
-    func testStartTrackingSuccess() async {
-        await MainActor.run {
-            mockWebSocketService.shouldSucceedConnection = true
-            mockPriceGenerator.shouldSucceedGeneration = true
-        }
+    func testStartTrackingSuccess() {
+        let expectation = XCTestExpectation(description: "Tracking started")
 
-        await viewModel.startTracking()
+        mockWebSocketService.shouldSucceedConnection = true
+        mockPriceGenerator.shouldSucceedGeneration = true
 
-        XCTAssertTrue(viewModel.isTrackingActive)
+        viewModel.$isTrackingActive
+            .dropFirst()
+            .sink { isActive in
+                if isActive {
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
 
-        let connectCalled = await MainActor.run { mockWebSocketService.connectCalled }
-        let startGeneratingCalled = await MainActor.run { mockPriceGenerator.startGeneratingCalled }
+        viewModel.startTracking()
 
-        XCTAssertTrue(connectCalled)
-        XCTAssertTrue(startGeneratingCalled)
+        wait(for: [expectation], timeout: 2.0)
+        XCTAssertTrue(mockWebSocketService.connectCalled)
+        XCTAssertTrue(mockPriceGenerator.startGeneratingCalled)
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testStartTrackingFailure() async {
-        await MainActor.run {
-            mockWebSocketService.shouldSucceedConnection = false
-            mockWebSocketService.connectionError = .connectionFailed("Test error")
-        }
+    func testStartTrackingFailure() {
+        let expectation = XCTestExpectation(description: "Error handled")
 
-        await viewModel.startTracking()
+        mockWebSocketService.shouldSucceedConnection = false
+        mockWebSocketService.connectionError = .connectionFailed("Test error")
 
-        XCTAssertFalse(viewModel.isTrackingActive)
+        viewModel.$errorMessage
+            .dropFirst()
+            .compactMap { $0 }
+            .sink { _ in
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+
+        viewModel.startTracking()
+
+        wait(for: [expectation], timeout: 2.0)
         XCTAssertNotNil(viewModel.errorMessage)
-
-        let attemptRecoveryCalled = await MainActor.run { mockErrorRecovery.attemptRecoveryCalled }
-        XCTAssertTrue(attemptRecoveryCalled)
+        XCTAssertFalse(viewModel.isTrackingActive)
     }
 
-    func testSymbolsSortedByPrice() async {
+    func testPriceUpdateHandling() {
+        let expectation = XCTestExpectation(description: "Price updated")
+
+        viewModel.$symbols
+            .dropFirst()
+            .sink { symbols in
+                if let updatedSymbol = symbols.first(where: { $0.symbol == "AAPL" }),
+                   updatedSymbol.currentPrice == 200.0 {
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+
+        let update = PriceUpdate(symbol: "AAPL", price: 200.0, timestamp: "2025-08-22T10:30:00Z")
+        mockWebSocketService.simulateUpdate(update)
+
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testSymbolsSortedByPrice() {
         let prices = viewModel.symbols.map { $0.currentPrice }
         let sortedPrices = prices.sorted(by: >)
         XCTAssertEqual(prices, sortedPrices)
-    }
-
-    func testConstants() {
-        XCTAssertEqual(Constants.PriceGeneration.updateInterval, 2.0)
-        XCTAssertEqual(Constants.Network.maxRetryAttempts, 3)
-        XCTAssertEqual(Constants.UI.minimumSymbolCount, 25)
-    }
-}
-
-extension StockFeedViewModel {
-    @MainActor
-    static func createForTesting() -> StockFeedViewModel {
-        return StockFeedViewModel(
-            webSocketService: MockWebSocketService(),
-            priceGeneratorService: MockPriceGeneratorService(),
-            stockDataService: MockStockDataService(),
-            errorRecoveryService: MockErrorRecoveryService(),
-            logger: MockLogger()
-        )
-    }
-}
-
-extension SymbolDetailViewModel {
-    @MainActor
-    static func createForTesting(symbol: StockSymbol) -> SymbolDetailViewModel {
-        return SymbolDetailViewModel(
-            symbol: symbol,
-            webSocketService: MockWebSocketService(),
-            logger: MockLogger()
-        )
     }
 }

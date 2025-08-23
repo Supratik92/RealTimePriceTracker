@@ -6,97 +6,72 @@
 //
 
 import XCTest
+import Combine
 @testable import RealTimePriceTracker
 
 final class NetworkLayerTests: XCTestCase {
     var networkClient: WebSocketNetworkClient!
     var mockLogger: MockLogger!
+    var cancellables = Set<AnyCancellable>()
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
+        super.setUp()
         mockLogger = MockLogger()
-        networkClient = await WebSocketNetworkClient(logger: mockLogger)
+        networkClient = WebSocketNetworkClient(logger: mockLogger)
     }
 
-    override func tearDown() async throws {
-        await networkClient.disconnect()
+    override func tearDown() {
+        networkClient.disconnect()
+        cancellables.removeAll()
         networkClient = nil
         mockLogger = nil
-        try await super.tearDown()
+        super.tearDown()
     }
 
-    func testInvalidURLHandling() async {
+    func testInitialState() {
+        XCTAssertFalse(networkClient.isConnected)
+    }
+
+    func testInvalidURLHandling() {
+        let expectation = XCTestExpectation(description: "Invalid URL error")
         let invalidURL = URL(string: "invalid://url")!
 
-        do {
-            try await networkClient.connect(to: invalidURL)
-            XCTFail("Should have thrown invalid URL error")
-        } catch let  error as NetworkError {
-                if case .invalidURL = error {
-                    // Expected error
-                } else {
-                    XCTFail("Wrong error type: \(error)")
-                }
-        } catch {
-            
-        }
+        networkClient.connect(to: invalidURL)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion,
+                       case .invalidURL = error {
+                        expectation.fulfill()
+                    }
+                },
+                receiveValue: { _ in }
+            )
+            .store(in: &cancellables)
+
+        wait(for: [expectation], timeout: 2.0)
     }
 
-    func testConnectionStateTransitions() async {
-        let initialState = await networkClient.connectionState
-        XCTAssertEqual(initialState, NetworkConnectionState.disconnected)
+    func testConnectionStatePublisher() {
+        let expectation = XCTestExpectation(description: "Connection state changes")
+        var stateChanges: [NetworkConnectionState] = []
 
-        let validURL = URL(string: Constants.Network.webSocketURL)!
-
-        do {
-            try await networkClient.connect(to: validURL)
-            let connectedState = await networkClient.connectionState
-            XCTAssertEqual(connectedState, NetworkConnectionState.connected)
-        } catch {
-            // Expected in test environment
-        }
-    }
-
-    func testNSObjectConformance() {
-        XCTAssertTrue(networkClient != nil, "WebSocketNetworkClient should inherit from NSObject for URLSessionDelegate")
-    }
-
-    func testNonisolatedMethodsCallable() async {
-        // Test that nonisolated methods can be called from any context
-        let testURL = URL(string: Constants.Network.webSocketURL)!
-
-        // This should compile without actor isolation warnings
-        await withCheckedContinuation { continuation in
-            Task {
-                do {
-                    try await networkClient.connect(to: testURL)
-                    await networkClient.disconnect()
-                    continuation.resume()
-                } catch {
-                    continuation.resume()
+        networkClient.connectionState
+            .sink { state in
+                stateChanges.append(state)
+                if stateChanges.count >= 2 {
+                    expectation.fulfill()
                 }
             }
-        }
-    }
+            .store(in: &cancellables)
 
-    func testRetryStrategy() {
-        XCTAssertTrue(NetworkRetryStrategy.shouldRetry(error: .timeout, attemptCount: 0))
-        XCTAssertTrue(NetworkRetryStrategy.shouldRetry(error: .connectionFailed("test"), attemptCount: 1))
-        XCTAssertFalse(NetworkRetryStrategy.shouldRetry(error: .timeout, attemptCount: 5))
-        XCTAssertFalse(NetworkRetryStrategy.shouldRetry(error: .invalidURL, attemptCount: 0))
-    }
-}
+        // Attempt connection (will likely fail in test environment)
+        let validURL = URL(string: Constants.Network.webSocketURL)!
+        networkClient.connect(to: validURL)
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .store(in: &cancellables)
 
-// MARK: - Result Extension for Testing
-extension Result {
-    var isSuccess: Bool {
-        switch self {
-        case .success: return true
-        case .failure: return false
-        }
-    }
-
-    var isFailure: Bool {
-        return !isSuccess
+        wait(for: [expectation], timeout: 5.0)
+        XCTAssertEqual(stateChanges.first, .disconnected)
+        XCTAssertTrue(stateChanges.contains { if case .connecting = $0 { return true }; return false })
     }
 }

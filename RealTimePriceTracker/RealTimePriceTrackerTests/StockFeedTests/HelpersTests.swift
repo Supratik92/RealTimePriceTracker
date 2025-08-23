@@ -9,51 +9,48 @@ import XCTest
 import Combine
 @testable import RealTimePriceTracker
 
-final class CoordinatorTests: XCTestCase {
-    var coordinator: AppCoordinator!
-    var mockLogger: MockLogger!
+final class HelpersTests: XCTestCase {
 
-    override func setUp() {
-        super.setUp()
-        mockLogger = MockLogger()
-        Task {
-            coordinator = await AppCoordinator(logger: mockLogger)
-        }
+    func testValidationHelpers() {
+        // Price validation
+        XCTAssertTrue(ValidationHelpers.validatePrice(100.0))
+        XCTAssertTrue(ValidationHelpers.validatePrice(Constants.PriceGeneration.minimumPrice))
+        XCTAssertTrue(ValidationHelpers.validatePrice(Constants.PriceGeneration.maximumPrice))
+
+        XCTAssertFalse(ValidationHelpers.validatePrice(-10.0))
+        XCTAssertFalse(ValidationHelpers.validatePrice(0.0))
+        XCTAssertFalse(ValidationHelpers.validatePrice(.infinity))
+        XCTAssertFalse(ValidationHelpers.validatePrice(.nan))
+
+        // Symbol code validation
+        XCTAssertTrue(ValidationHelpers.validateSymbolCode("AAPL"))
+        XCTAssertTrue(ValidationHelpers.validateSymbolCode("BRK.B"))
+        XCTAssertFalse(ValidationHelpers.validateSymbolCode(""))
+        XCTAssertFalse(ValidationHelpers.validateSymbolCode("123"))
     }
 
-    override func tearDown() {
-        coordinator = nil
-        mockLogger = nil
-        super.tearDown()
+    func testPriceHelpers() {
+        let currentPrice = 100.0
+        let newPrice = PriceHelpers.generateRandomPriceChange(for: currentPrice)
+
+        XCTAssertGreaterThanOrEqual(newPrice, Constants.PriceGeneration.minimumPrice)
+        XCTAssertTrue(newPrice.isFinite)
+
+        // Test price update creation
+        let update = PriceHelpers.createPriceUpdate(symbol: "TEST", price: 123.45)
+        XCTAssertEqual(update.symbol, "TEST")
+        XCTAssertEqual(update.price, 123.45)
+        XCTAssertFalse(update.timestamp.isEmpty)
     }
 
-    func testInitialState() async throws {
-        Task { @MainActor in
-            XCTAssertTrue(coordinator.path.isEmpty)
-            XCTAssertNil(coordinator.selectedSymbol)
-        }
-    }
+    func testURLHelpers() {
+        let testURL = URL(string: "stocks://symbol/AAPL/extra")!
+        let components = URLHelpers.extractPathComponents(from: testURL)
 
-    func testNavigateToSymbolDetail() async throws {
-        let testSymbol = StockSymbol.sampleSymbols.first!
-        Task { @MainActor in
-            await coordinator.navigate(to: .symbolDetail(testSymbol))
-            XCTAssertEqual(coordinator.path.count, 1)
-            XCTAssertEqual(coordinator.selectedSymbol?.symbol, testSymbol.symbol)
-        }
-    }
+        XCTAssertEqual(components, ["AAPL", "extra"])
 
-    func testGoBack() async throws {
-        let testSymbol = StockSymbol.sampleSymbols.first!
-
-        Task { @MainActor in
-            // Navigate somewhere first
-            await coordinator.navigate(to: .symbolDetail(testSymbol))
-            XCTAssertEqual(coordinator.path.count, 1)
-
-            // Go back
-            await coordinator.goBack()
-            XCTAssertEqual(coordinator.path.count, 0)
-        }
+        let deepLinkURL = URLHelpers.createDeepLinkURL(for: "TSLA")
+        XCTAssertNotNil(deepLinkURL)
+        XCTAssertEqual(deepLinkURL?.absoluteString, "stocks://symbol/TSLA")
     }
 }

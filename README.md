@@ -224,6 +224,11 @@ For questions, issues, or contributions:
 - Review the documentation
 - Check existing discussions
 
+## Known Bugs to Fix
+
+Stocks Feed View
+- Fix Connection Status, When disconnected
+
 ---
 
 **Built with ❤️ using SwiftUI and modern iOS development practices**

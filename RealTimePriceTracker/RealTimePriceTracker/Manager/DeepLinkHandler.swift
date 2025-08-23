@@ -34,13 +34,11 @@ final class StockDeepLinkHandler: DeepLinkHandler {
 
         let pathComponents = URLHelpers.extractPathComponents(from: url)
 
-        guard pathComponents.count >= 2,
-              pathComponents[0] == Constants.DeepLink.symbolPath else {
+        guard pathComponents.count >= 1,
+        let symbolCode = pathComponents.first else {
             logger.warning("Invalid deep link path: \(url.path)", category: .deeplink)
             return
         }
-
-        let symbolCode = pathComponents[1].uppercased()
 
         stockDataService.getSymbol(by: symbolCode)
             .compactMap { $0 }

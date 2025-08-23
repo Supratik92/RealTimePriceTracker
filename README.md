@@ -22,37 +22,6 @@ A real-time stock price tracking iOS app built with SwiftUI that demonstrates ad
 - **Accessibility**: Full VoiceOver support, Dynamic Type, and semantic labels
 - **Localization**: Multi-language support with externalized strings
 - **Theme Support**: Adaptive light/dark mode following system preferences
-
-## 📱 Screenshots
-
-| Feed Screen | Symbol Details | Dark Mode |
-|-------------|----------------|-----------|
-| *Coming Soon* | *Coming Soon* | *Coming Soon* |
-
-## 🏗️ Architecture
-
-### MVVM+C Pattern
-This app implements the **Model-View-ViewModel + Coordinator** pattern for clean separation of concerns:
-
-```
-├── Models/
-│   ├── StockSymbol.swift          # Core data models
-│   └── PriceUpdate.swift
-├── ViewModels/
-│   ├── StockFeedViewModel.swift   # Business logic & state management
-│   └── SymbolDetailViewModel.swift
-├── Views/
-│   ├── StockFeedView.swift        # SwiftUI views
-│   ├── SymbolDetailView.swift
-│   └── Components/
-├── Coordinators/
-│   └── AppCoordinator.swift       # Navigation logic
-├── Services/
-│   ├── WebSocketService.swift     # WebSocket communication
-│   └── PriceGeneratorService.swift
-└── Utilities/
-    ├── DeepLinkHandler.swift      # URL scheme handling
-    └── ThemeManager.swift
 ```
 
 ### Key Components
@@ -152,19 +121,6 @@ xcodebuild test -scheme StockTracker -destination 'platform=iOS Simulator,name=i
 xcodebuild test -scheme StockTrackerUITests -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
-### Test Structure
-```
-Tests/
-├── UnitTests/
-│   ├── ViewModelTests/
-│   ├── ServiceTests/
-│   └── ModelTests/
-└── UITests/
-    ├── FeedScreenTests.swift
-    ├── DetailScreenTests.swift
-    └── NavigationTests.swift
-```
-
 ## ♿ Accessibility
 
 ### VoiceOver Support
@@ -245,44 +201,6 @@ enum Environment {
     }
 }
 ```
-
-## 📈 Project Structure
-
-```
-StockTracker/
-├── App/
-│   ├── StockTrackerApp.swift      # App entry point
-│   └── AppCoordinator.swift       # Main coordinator
-├── Features/
-│   ├── Feed/
-│   │   ├── Views/
-│   │   ├── ViewModels/
-│   │   └── Models/
-│   └── SymbolDetail/
-│       ├── Views/
-│       ├── ViewModels/
-│       └── Models/
-├── Core/
-│   ├── Services/
-│   ├── Utilities/
-│   └── Extensions/
-├── Resources/
-│   ├── Localizable.strings
-│   ├── Assets.xcassets
-│   └── Info.plist
-└── Tests/
-    ├── UnitTests/
-    └── UITests/
-```
-
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ### Code Standards
 - SwiftLint configuration for consistent formatting

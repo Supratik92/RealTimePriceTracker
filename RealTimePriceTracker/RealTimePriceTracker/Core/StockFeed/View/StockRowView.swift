@@ -17,11 +17,13 @@ struct StockRowView: View {
                 Text(symbol.symbol)
                     .font(.headline)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("\(AccessibilityIdentifiers.StockRow.symbolText)_\(symbol.symbol)")
 
                 Text(symbol.name)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .accessibilityIdentifier("\(AccessibilityIdentifiers.StockRow.nameText)_\(symbol.symbol)")
             }
 
             Spacer()
@@ -35,6 +37,7 @@ struct StockRowView: View {
                         " \(symbol.currentPrice.toCurrency()) " +
                         LocalizationKeys.Accessibility.dollars.localized()
                     )
+                    .accessibilityIdentifier("\(AccessibilityIdentifiers.StockRow.priceText)_\(symbol.symbol)")
 
                 HStack(spacing: 4) {
                     Text(symbol.priceDirection.arrow)
@@ -43,6 +46,7 @@ struct StockRowView: View {
                     Text("\(symbol.priceChange >= 0 ? "+" : "")\(symbol.priceChange.toCurrency())")
                         .font(.caption)
                         .foregroundColor(symbol.priceDirection.color)
+                        .accessibilityIdentifier("\(AccessibilityIdentifiers.StockRow.changeText)_\(symbol.symbol)")
                 }
                 .accessibilityLabel(symbol.priceChangeAccessibilityLabel)
             }

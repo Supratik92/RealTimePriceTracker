@@ -22,6 +22,7 @@ struct ConnectionStatusView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
+        .accessibilityIdentifier(AccessibilityIdentifiers.ConnectionStatus.container)
         .onReceive(webSocketService.connectionState) { state in
             connectionState = state
         }

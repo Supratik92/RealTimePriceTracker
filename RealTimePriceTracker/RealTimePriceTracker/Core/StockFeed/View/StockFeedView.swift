@@ -28,6 +28,7 @@ struct StockFeedView: View {
         }
         .navigationTitle(LocalizationKeys.App.title.localized())
         .navigationBarTitleDisplayMode(.large)
+        .accessibilityIdentifier(AccessibilityIdentifiers.StockFeed.navigationTitle)
     }
 
     private var topBar: some View {
@@ -72,6 +73,7 @@ struct StockFeedView: View {
                 viewModel.errorMessage = nil
             }
             .font(.caption)
+            .accessibilityIdentifier(AccessibilityIdentifiers.StockFeed.dismissErrorButton)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -90,6 +92,7 @@ struct StockFeedView: View {
                     }
                 }
                 .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("\(AccessibilityIdentifiers.StockRow.cell)_\(symbol.symbol)")
                 .accessibilityAction(named: LocalizationKeys.Accessibility.viewDetails.localized()) {
                     Task {
                         await coordinator.navigate(to: .symbolDetail(symbol))
@@ -97,6 +100,8 @@ struct StockFeedView: View {
                 }
         }
         .listStyle(PlainListStyle())
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityIdentifiers.StockFeed.stockList)
         .refreshable {
             viewModel.refreshData()
         }

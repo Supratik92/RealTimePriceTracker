@@ -47,6 +47,10 @@ struct TrackingControlButton: View {
             LocalizationKeys.Accessibility.stopTracking.localized() :
             LocalizationKeys.Accessibility.startTracking.localized()
         )
+        .accessibilityIdentifier(isActive ?
+            AccessibilityIdentifiers.StockFeed.stopButton :
+            AccessibilityIdentifiers.StockFeed.startButton
+        )
         .accessibilityTapTarget()
     }
 }

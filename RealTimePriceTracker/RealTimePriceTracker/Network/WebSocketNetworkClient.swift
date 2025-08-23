@@ -198,7 +198,9 @@ final class WebSocketNetworkClient: NSObject, NetworkClient, ObservableObject {
 }
 
 extension WebSocketNetworkClient: URLSessionWebSocketDelegate {
-    nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+    nonisolated func urlSession(_ session: URLSession,
+                                webSocketTask: URLSessionWebSocketTask,
+                                didOpenWithProtocol protocol: String?) {
         Task { @MainActor in
             logger.info("WebSocket connection established", category: .network)
             currentConnectionState = .connected
@@ -206,7 +208,10 @@ extension WebSocketNetworkClient: URLSessionWebSocketDelegate {
         }
     }
 
-    nonisolated func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+    nonisolated func urlSession(_ session: URLSession,
+                                webSocketTask: URLSessionWebSocketTask,
+                                didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
+                                reason: Data?) {
         Task { @MainActor in
             let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown"
             logger.info("Connection closed - Code: \(closeCode.rawValue), Reason: \(reasonString)", category: .network)

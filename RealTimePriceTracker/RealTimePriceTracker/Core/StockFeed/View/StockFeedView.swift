@@ -87,6 +87,7 @@ struct StockFeedView: View {
     private var stockList: some View {
         List(viewModel.symbols) { symbol in
             StockRowView(symbol: symbol, isFlashing: viewModel.flashingSymbols.contains(symbol.symbol))
+                .contentShape(Rectangle())
                 .onTapGesture {
                     Task {
                         await coordinator.navigate(to: .symbolDetail(symbol))

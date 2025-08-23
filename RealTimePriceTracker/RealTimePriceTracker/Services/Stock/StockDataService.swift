@@ -8,5 +8,5 @@
 protocol StockDataService: AnyObject {
     func getAllSymbols() async -> [StockSymbol]
     func getSymbol(by code: String) async -> StockSymbol?
-    func updateSymbolPrice(_ symbol: inout StockSymbol, newPrice: Double) async -> Result<Void, StockDataError>
+    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) async -> Result<StockSymbol, StockDataError>
 }

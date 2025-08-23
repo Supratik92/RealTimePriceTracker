@@ -31,20 +31,16 @@ final class LocalStockDataService: StockDataService {
         return symbol
     }
 
-    func updateSymbolPrice(_ symbol: inout StockSymbol, newPrice: Double) async -> Result<Void, StockDataError> {
+    func updateSymbolPrice(symbol: StockSymbol, newPrice: Double) async -> Result<StockSymbol, StockDataError> {
         guard ValidationHelpers.validatePrice(newPrice) else {
-            logger.error("Invalid price for \(symbol.symbol): \(newPrice)",
-                         error: StockDataError.invalidPrice(newPrice),
-                         category: .business)
             return .failure(.invalidPrice(newPrice))
         }
 
-        let oldPrice = symbol.currentPrice
-        symbol.previousPrice = oldPrice
-        symbol.currentPrice = newPrice
-        symbol.lastUpdated = Date()
+        var updatedSymbol = symbol
+        updatedSymbol.previousPrice = updatedSymbol.currentPrice
+        updatedSymbol.currentPrice = newPrice
+        updatedSymbol.lastUpdated = Date()
 
-        logger.debug("Updated \(symbol.symbol) price: \(oldPrice.toCurrency()) -> \(newPrice.toCurrency())", category: .business)
-        return .success(())
+        return .success(updatedSymbol)
     }
 }

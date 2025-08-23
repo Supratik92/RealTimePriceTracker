@@ -50,36 +50,6 @@
             endingLineNumber = "51"
             landmarkName = "handle(url:)"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "EC45A07C-DCE0-4A30-8976-E1F9029C9723 - c324bdbb5fd05207"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(1) suspend resume partial function for closure #1 () async -&gt; Swift.Optional&lt;()&gt; in closure #3 (RealTimePriceTracker.StockSymbol) -&gt; () in RealTimePriceTracker.StockDeepLinkHandler.handle(url: Foundation.URL) -&gt; ()"
-                  moduleName = "RealTimePriceTracker.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/Supratik.Banerjee@ig.com/Documents/CheckHost/RealTimePriceTracker/RealTimePriceTracker/RealTimePriceTracker/Manager/DeepLinkHandler.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "51"
-                  endingLineNumber = "51">
-               </Location>
-               <Location
-                  uuid = "EC45A07C-DCE0-4A30-8976-E1F9029C9723 - 85328e39fb3a962e"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "(3) suspend resume partial function for closure #1 () async -&gt; Swift.Optional&lt;()&gt; in closure #3 (RealTimePriceTracker.StockSymbol) -&gt; () in RealTimePriceTracker.StockDeepLinkHandler.handle(url: Foundation.URL) -&gt; ()"
-                  moduleName = "RealTimePriceTracker.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/Supratik.Banerjee@ig.com/Documents/CheckHost/RealTimePriceTracker/RealTimePriceTracker/RealTimePriceTracker/Manager/DeepLinkHandler.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "52"
-                  endingLineNumber = "52">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

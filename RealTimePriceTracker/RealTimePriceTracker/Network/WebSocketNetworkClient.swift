@@ -23,11 +23,11 @@ final class WebSocketNetworkClient: NSObject, NetworkClient, ObservableObject {
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
-    private let logger: ConsoleLogger
+    private let logger: any Logger
     private let networkMonitor = NWPathMonitor()
     private var isNetworkAvailable = true
 
-    init(logger: ConsoleLogger) {
+    init(logger: any Logger) {
         self.logger = logger
         super.init()
         setupNetworkMonitoring()
@@ -55,12 +55,12 @@ final class WebSocketNetworkClient: NSObject, NetworkClient, ObservableObject {
         logger.info("Connecting to: \(url.absoluteString)", category: .network)
 
         guard url.scheme == "ws" || url.scheme == "wss" else {
-            logger.error("Invalid WebSocket URL scheme", category: .network)
+            logger.error("Invalid WebSocket URL scheme", error: NetworkError.invalidURL, category: .network)
             throw NetworkError.invalidURL
         }
 
         guard isNetworkAvailable else {
-            logger.error("Network unavailable", category: .network)
+            logger.error("Network unavailable", error: NetworkError.networkUnavailable, category: .network)
             throw NetworkError.networkUnavailable
         }
 

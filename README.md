@@ -86,13 +86,12 @@ This project uses only native iOS frameworks to demonstrate pure SwiftUI and Com
 ### Quick Start
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/stock-price-tracker.git
-   cd stock-price-tracker
+   git clone [https://github.com/yourusername/stock-price-tracker.git](https://github.com/Supratik92/RealTimePriceTracker.git)
    ```
 
 2. **Open in Xcode**
    ```bash
-   open StockTracker.xcodeproj
+   open RealTimePriceTracker.xcodeproj
    ```
 
 3. **Build and run**
@@ -111,15 +110,6 @@ xcrun simctl openurl booted "stocks://symbol/AAPL"
 - **Unit Tests**: Business logic, ViewModels, Services (90%+ coverage target)
 - **UI Tests**: User interaction flows, navigation, accessibility
 - **Integration Tests**: WebSocket connectivity, data flow
-
-### Running Tests
-```bash
-# Unit tests
-xcodebuild test -scheme StockTracker -destination 'platform=iOS Simulator,name=iPhone 15'
-
-# UI tests
-xcodebuild test -scheme StockTrackerUITests -destination 'platform=iOS Simulator,name=iPhone 15'
-```
 
 ## ♿ Accessibility
 
@@ -150,7 +140,6 @@ xcodebuild test -scheme StockTrackerUITests -destination 'platform=iOS Simulator
 ### Localization Implementation
 - `Localizable.strings` files for each language
 - Programmatic string localization using `NSLocalizedString`
-- Number and currency formatting based on locale
 
 ## 🎨 Theming
 
@@ -189,27 +178,11 @@ Color.red         // Price decreases
 - **Debug**: Full logging, debug symbols
 - **Release**: Optimized performance, minimal logging
 
-### Environment Setup
-```swift
-// Configuration.swift
-enum Environment {
-    case development
-    case production
-    
-    var webSocketURL: String {
-        return "wss://ws.postman-echo.com/raw"
-    }
-}
-```
-
 ### Code Standards
 - SwiftLint configuration for consistent formatting
 - 100% Swift code coverage for critical paths
 - Comprehensive documentation for public APIs
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

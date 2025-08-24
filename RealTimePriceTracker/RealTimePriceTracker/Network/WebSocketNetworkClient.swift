@@ -247,13 +247,16 @@ extension WebSocketNetworkClient: URLSessionWebSocketDelegate {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
         let reasonString = reason.flatMap { String(data: $0, encoding: .utf8) } ?? "Unknown"
         logger.info("❌ WebSocket closed - Code: \(closeCode.rawValue), Reason: \(reasonString)", category: .network)
-        _connectionState = .disconnected
-        _isConnected = false
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            _connectionState = .disconnected
+            _isConnected = false
 
-        // Notify connection failure if still connecting
-        let error = NetworkError.connectionFailed("Connection closed: \(closeCode.rawValue)")
-        connectionPromise?(.failure(error))
-        connectionPromise = nil
+            // Notify connection failure if still connecting
+            let error = NetworkError.connectionFailed("Connection closed: \(closeCode.rawValue)")
+            connectionPromise?(.failure(error))
+            connectionPromise = nil
+        }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {

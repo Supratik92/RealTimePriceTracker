@@ -24,6 +24,7 @@ final class StockFeedViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var retryCount = 0
+    private var currentNetworkState: NetworkConnectionState?
 
     init(
         webSocketService: any WebSocketService,
@@ -39,6 +40,7 @@ final class StockFeedViewModel: ObservableObject {
         self.errorRecoveryService = errorRecoveryService
         self.logger = logger
 
+        listenToConnectionState()
         setupInitialData()
         setupPriceUpdates()
         setupErrorHandling()
@@ -53,6 +55,12 @@ final class StockFeedViewModel: ObservableObject {
                 self?.logger.info("Loaded \(symbols.count) stock symbols", category: .ui)
             }
             .store(in: &cancellables)
+    }
+
+    private func listenToConnectionState() {
+        webSocketService.connectionState.sink { [weak self] currentState in
+            self?.currentNetworkState = currentState
+        }.store(in: &cancellables)
     }
 
     private func setupPriceUpdates() {
@@ -93,6 +101,12 @@ final class StockFeedViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         retryCount = 0
+
+        guard let currentState = self.currentNetworkState,
+              (currentState != .connecting || currentState != .reconnecting) else {
+            logger.info("Current network connection is already is in progress", category: .network)
+            return
+        }
 
         webSocketService.connect()
             .receive(on: DispatchQueue.main)
